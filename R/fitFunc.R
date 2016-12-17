@@ -1,5 +1,5 @@
 fitFunc <-
-function(ID, hb, bin_min, bin_max, obs_mean, ID_name, distribution=LNO,distName='LNO',links=c(muLink=identity, sigmaLink=log, nuLink=NULL, tauLink=NULL), qFunc=qLNO, quantiles=seq(0.006,0.996,length.out=1000), linksq=c(identity,exp,NULL,NULL), con=gamlss.control(c.crit = 0.1, n.cyc = 200, trace = FALSE), saveQuants=FALSE,muStart=NULL,sigmaStart=NULL, nuStart=NULL,tauStart=NULL,muFix=FALSE, sigmaFix=FALSE,nuFix=FALSE,tauFix=FALSE,freeParams=c(TRUE,TRUE,FALSE,FALSE),smartStart=FALSE, tstamp = as.numeric(Sys.time())){
+function(ID, hb, bin_min, bin_max, obs_mean, ID_name, distribution=LOGNO,distName='LNO',links=c(muLink=identity, sigmaLink=log, nuLink=NULL, tauLink=NULL), qFunc=qLOGNO, quantiles=seq(0.006,0.996,length.out=1000), linksq=c(identity,exp,NULL,NULL), con=gamlss.control(c.crit = 0.1, n.cyc = 200, trace = FALSE), saveQuants=FALSE,muStart=NULL,sigmaStart=NULL, nuStart=NULL,tauStart=NULL,muFix=FALSE, sigmaFix=FALSE,nuFix=FALSE,tauFix=FALSE,freeParams=c(TRUE,TRUE,FALSE,FALSE),smartStart=FALSE, tstamp = as.numeric(Sys.time())){
   start<-Sys.time()
   
   dat<-data.frame(ID, hb, bin_min, bin_max, obs_mean)
@@ -33,6 +33,7 @@ function(ID, hb, bin_min, bin_max, obs_mean, ID_name, distribution=LNO,distName=
   gini<-c()
   theil<-c()
   mld<-c()
+  sdl<-c()
   
   for(i in 1:length(dist)){
     if(i %% 500 == 0){print(i)}
@@ -63,17 +64,23 @@ function(ID, hb, bin_min, bin_max, obs_mean, ID_name, distribution=LNO,distName=
           sigma.start.i<-sigmaStart
         }
         
-        fit.i<-try(gamlss(intCens.i~1,weights=intW.i,family=cens(distribution,mu.link=links[[1]], sigma.link=links[[2]],nu.link=links[[3]], tau.link=links[[4]] ,type='interval'),mu.start=mu.start.i,sigma.start=sigma.start.i, nu.start=nuStart,tau.start=tauStart,mu.fix=muFix, sigma.fix=sigmaFix,nu.fix=nuFix,tau.fix=tauFix,control=con),silent=TRUE)
+        fit.i<-try(gamlss(intCens.i~1,weights=intW.i,family=cens(distribution, mu.link=links[[1]], sigma.link=links[[2]],nu.link=links[[3]], tau.link=links[[4]] ,type='interval'), censmu.start=mu.start.i,sigma.start=sigma.start.i, nu.start=nuStart,tau.start=tauStart,mu.fix=muFix, sigma.fix=sigmaFix,nu.fix=nuFix,tau.fix=tauFix,control=con),silent=TRUE)
       }else{
-        fit.i<-try(gamlss(intCens.i~1,weights=intW.i,family=cens(distribution,mu.link=links[[1]], sigma.link=links[[2]],nu.link=links[[3]], tau.link=links[[4]] ,type='interval'),mu.start=muStart,sigma.start=sigmaStart, nu.start=nuStart,tau.start=tauStart,mu.fix=muFix, sigma.fix=sigmaFix,nu.fix=nuFix,tau.fix=tauFix,control=con),silent=TRUE)
+        fit.i<-try(gamlss(intCens.i~1,weights=intW.i,family=cens(distribution, mu.link=links[[1]], sigma.link=links[[2]], nu.link=links[[3]], tau.link=links[[4]] ,type='interval'),mu.start=muStart,sigma.start=sigmaStart, nu.start=nuStart,tau.start=tauStart,mu.fix=muFix, sigma.fix=sigmaFix,nu.fix=nuFix,tau.fix=tauFix,control=con),silent=TRUE)
       }#end if/else smartStart
       
-      testState<-is(fit.i)=="try-error"
+      testStateVar <- attr(fit.i, "class")
+      testState <- FALSE
+      if(length(testStateVar) > 0){
+      	if(testStateVar[1] == "try-error"){
+      		testState <- TRUE
+      	}
+      }
       if(testState==TRUE){
         NAgate<-'OPEN' 
       }else{
         #quantiles
-        quanParam.i<-getQuantilesParams(fit.i,qFunc, quantiles, linksq, freeParams,c(muStart,sigmaStart, nuStart,tauStart))
+        quanParam.i<-getQuantilesParams(fit.i, qFunc, quantiles, linksq, freeParams,c(muStart,sigmaStart, nuStart,tauStart))
         samps.i<-quanParam.i$samps
         params.i<-quanParam.i$params
         #parameters
@@ -95,6 +102,7 @@ function(ID, hb, bin_min, bin_max, obs_mean, ID_name, distribution=LNO,distName=
         est<-c(est,est.i)
         obs.i.obs<-dat[use.i[1],'hin_mean']
         mld.i<-MLD(samps.i)
+        sdl.i<-SDL(samps.i)
       	if(length(obs.i.obs)==0){
       		obs.i.obs<-NA
       	}
@@ -110,6 +118,7 @@ function(ID, hb, bin_min, bin_max, obs_mean, ID_name, distribution=LNO,distName=
         gini<-c(gini,gin.i)
         theil<-c(theil,the.i)
         mld<-c(mld,mld.i)
+        sdl<-c(sdl,sdl.i)
       }#end if/else testState!=TRUE
     }#end if/else nrow(int.i)<1
     if(NAgate=='OPEN'){
@@ -133,14 +142,15 @@ function(ID, hb, bin_min, bin_max, obs_mean, ID_name, distribution=LNO,distName=
       gini<-c(gini,NA)
       theil<-c(theil, NA)
       mld<-c(mld,NA)
+      sdl<-c(sdl,NA)
     }#end if NAgate='OPEN'
   }#end loop over dists. for i
   elasp<-Sys.time()-start
   print(elasp)
   cat('for', distName, 'fit across', length(dist), 'distributions','\n', '\n')
   distri<-rep(distName,length(est))
-  datOut<-data.frame(dist,obs,distri,est,vars,cvs,cv2,gini,theil,mld,aics,bics,didCon,logLikes,nparams,medians,sds)
-  colnames(datOut)<-c(ID_name,'obsMean','distribution','estMean','var','cv','cv_sqr','gini','theil','MLD','aic','bic','didConverge','logLikelihood','nparams','median','sd')
+  datOut<-data.frame(dist,obs,distri,est,vars,cvs,cv2,gini,theil,mld,sdl,aics,bics,didCon,logLikes,nparams,medians,sds)
+  colnames(datOut)<-c(ID_name,'obsMean','distribution','estMean','var','cv','cv_sqr','gini','theil','MLD','SDL','aic','bic','didConverge','logLikelihood','nparams','median','sd')
  
   
   #saving quantiles
