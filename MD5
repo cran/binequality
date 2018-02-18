@@ -1,4 +1,4 @@
-dd3848a1a75000d5d8705c1e8af0bbe2 *DESCRIPTION
+2d92908787feab675d7135219bad8e27 *DESCRIPTION
 ae16f0ff8cd0bec8459be825acbf9cac *NAMESPACE
 88810b5c0e83149bc1b327a6df2ddb22 *R/LRT.R
 d771d7ce7159207c109fb429f1b5275d *R/MLD.R
@@ -21,11 +21,11 @@ d67874db66e3b7edecb2288ad2a250fa *R/modelAvg.R
 fafb933e2867e4b9dd826746d05155ad *data/datalist
 57f14450cc265b2d02a5747dec2e8fa3 *data/school_district_bins.rda
 2ccb5d9e064216e22656327543e2b56f *data/state_bins.rda
-8b00c46eb4f3be13b8480cc1eb169d08 *inst/CITATION
+0a1f487f43d1222e7dd9b1ab8448d0b1 *inst/CITATION
 5490c3bb827909c54a37a5a6402c9df7 *man/LRT.Rd
 00d38951a69bf1ca6bfe2648b79f8b55 *man/MLD.Rd
 efd0191c4a16b22c30f151b14bbb38df *man/SDL.Rd
-691213f460bbeaba38a1af4b59339a5e *man/binequality-package.Rd
+51610d185dc5e7550410aeefd047b0f9 *man/binequality-package.Rd
 113525c7cdeb4bab276e311559e3b51f *man/county_bins.Rd
 fa16e691084b297aca2aa2f29ed4f374 *man/fitFunc.Rd
 a396d6f3d08b08db22cc9a2f2ffe1e11 *man/getMids.Rd
